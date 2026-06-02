@@ -8,6 +8,16 @@ export type SignatureRenderProps = {
   value: string;
 };
 
+const SIGNATURE_FONT_FAMILY = 'Caveat';
+
+const loadTypedSignatureFont = async () => {
+  if (typeof document === 'undefined' || !('fonts' in document)) {
+    return;
+  }
+
+  await document.fonts.load(`18px ${SIGNATURE_FONT_FAMILY}`);
+};
+
 /**
  * Renders a typed, uploaded or drawn signature.
  */
@@ -30,7 +40,7 @@ export const SignatureRender = ({ className, value }: SignatureRenderProps) => {
 
     const canvasWidth = $el.current.width;
     const canvasHeight = $el.current.height;
-    const fontFamily = 'Caveat';
+    const fontFamily = SIGNATURE_FONT_FAMILY;
 
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     ctx.textAlign = 'center';
@@ -113,7 +123,17 @@ export const SignatureRender = ({ className, value }: SignatureRenderProps) => {
     if (isBase64Image(value)) {
       renderImageSignature();
     } else {
-      renderTypedSignature();
+      let isCancelled = false;
+
+      void loadTypedSignatureFont().then(() => {
+        if (!isCancelled) {
+          renderTypedSignature();
+        }
+      });
+
+      return () => {
+        isCancelled = true;
+      };
     }
   }, [value]);
 
