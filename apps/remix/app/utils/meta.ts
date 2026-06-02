@@ -1,11 +1,12 @@
 import { NEXT_PUBLIC_WEBAPP_URL } from '@documenso/lib/constants/app';
+import { i18n, type MessageDescriptor } from '@lingui/core';
 
-export const appMetaTags = (title?: string) => {
+export const appMetaTags = (title?: MessageDescriptor) => {
   const description = 'Hermione - signature de documents';
 
   return [
     {
-      title: title ? `${title} - Hermione` : 'Hermione',
+      title: title ? `${i18n._(title)} - Hermione` : 'Hermione',
     },
     {
       name: 'description',
