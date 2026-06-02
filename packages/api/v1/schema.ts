@@ -94,6 +94,10 @@ export const ZSendDocumentForSigningMutationSchema = z
       description:
         'Whether to send completion emails when the document is fully signed. This will override the document email settings.',
     }),
+    activateWithoutEmail: z.boolean().optional().default(false).openapi({
+      description:
+        'Whether to activate recipients and schedule signing reminders without sending the initial signing request email. Only applies when sendEmail is false.',
+    }),
   })
   .or(z.any().transform(() => ({ sendEmail: true, sendCompletionEmails: undefined })));
 
