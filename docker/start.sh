@@ -25,7 +25,10 @@ printf "📊 Certificate status: http://localhost:3000/api/certificate-status\n"
 printf "👥 Community: https://github.com/documenso/documenso\n\n"
 
 printf "🗄️  Running database migrations...\n"
-npx prisma migrate deploy --schema ../../packages/prisma/schema.prisma
+if ! npx prisma migrate deploy --schema ../../packages/prisma/schema.prisma; then
+    printf "❌ Database migrations failed; refusing to start Documenso with a mismatched schema.\n"
+    exit 1
+fi
 
 printf "🌟 Starting Documenso server...\n"
 HOSTNAME=0.0.0.0 node build/server/main.js
