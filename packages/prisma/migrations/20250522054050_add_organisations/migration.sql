@@ -97,7 +97,11 @@ ALTER TABLE "Team" ADD COLUMN "isPersonal" BOOLEAN NOT NULL DEFAULT false;
 INSERT INTO "Team" ("name", "url", "createdAt", "ownerUserId", "avatarImageId", "isPersonal")
 SELECT
 'Personal Team',
-"url", -- Use the user's URL directly
+CASE
+  WHEN EXISTS (SELECT 1 FROM "Team" existing_team WHERE existing_team."url" = u."url")
+    THEN generate_id()
+  ELSE u."url"
+END,
 NOW(),
 "id",
 "avatarImageId",
