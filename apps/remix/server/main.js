@@ -32,5 +32,8 @@ server.use(
 const handler = handle(build, server, { getLoadContext });
 
 const port = parseInt(process.env.PORT || '3000', 10);
+const hostname = process.env.HOSTNAME || '0.0.0.0';
 
-serve({ fetch: handler.fetch, port });
+serve({ fetch: handler.fetch, port, hostname }, (info) => {
+  console.log(`Server listening on ${info.address}:${info.port}`);
+});
