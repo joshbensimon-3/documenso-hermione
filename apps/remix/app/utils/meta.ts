@@ -1,12 +1,12 @@
 import { NEXT_PUBLIC_WEBAPP_URL } from '@documenso/lib/constants/app';
+import { i18n, type MessageDescriptor } from '@lingui/core';
 
-export const appMetaTags = (title?: string) => {
-  const description =
-    'Medibox - signature de documents';
+export const appMetaTags = (title?: MessageDescriptor) => {
+  const description = 'Medibox - signature de documents';
 
   return [
     {
-      title: title ? `${title} - Medibox` : 'Medibox',
+      title: title ? `${i18n._(title)} - Medibox` : 'Medibox',
     },
     {
       name: 'description',
@@ -14,8 +14,7 @@ export const appMetaTags = (title?: string) => {
     },
     {
       name: 'keywords',
-      content:
-        'Signature Medibox',
+      content: 'Signature Medibox',
     },
     {
       name: 'author',
