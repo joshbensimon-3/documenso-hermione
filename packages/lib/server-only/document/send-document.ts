@@ -39,7 +39,6 @@ import { toCheckboxCustomText, toRadioCustomText } from '../../utils/fields';
 import { getRecipientsWithMissingFields, isRecipientEmailValidForSending } from '../../utils/recipients';
 import { getEnvelopeWhereInput } from '../envelope/get-envelope-by-id';
 import { insertFormValuesInPdf } from '../pdf/insert-form-values-in-pdf';
-import { updateRecipientNextReminder } from '../recipient/update-recipient-next-reminder';
 import { assertUserNotDisabledById } from '../user/assert-user-not-disabled';
 import { triggerWebhook } from '../webhooks/trigger/trigger-webhook';
 
@@ -48,18 +47,10 @@ export type SendDocumentOptions = {
   userId: number;
   teamId: number;
   sendEmail?: boolean;
-  activateWithoutEmail?: boolean;
   requestMetadata: ApiRequestMetadata;
 };
 
-export const sendDocument = async ({
-  id,
-  userId,
-  teamId,
-  sendEmail,
-  activateWithoutEmail,
-  requestMetadata,
-}: SendDocumentOptions) => {
+export const sendDocument = async ({ id, userId, teamId, sendEmail, requestMetadata }: SendDocumentOptions) => {
   // Refuse to send on behalf of a disabled account. Guards distribute /
   // redistribute / template-use routes, the bulk-send job, and direct
   // templates that auto-send on creation.
@@ -341,58 +332,14 @@ export const sendDocument = async ({
     );
   }
 
-  let envelopeForWebhook = updatedEnvelope;
-
-  if (activateWithoutEmail && sendEmail === false) {
-    const sentAt = new Date();
-    const recipientsToActivate = recipientsToNotify.filter(
-      (recipient) => recipient.sendStatus !== SendStatus.SENT && recipient.role !== RecipientRole.CC,
-    );
-
-    if (recipientsToActivate.length > 0) {
-      await prisma.recipient.updateMany({
-        where: {
-          id: { in: recipientsToActivate.map((recipient) => recipient.id) },
-          sendStatus: SendStatus.NOT_SENT,
-          role: { not: RecipientRole.CC },
-        },
-        data: {
-          sendStatus: SendStatus.SENT,
-          sentAt,
-        },
-      });
-
-      await Promise.all(
-        recipientsToActivate.map((recipient) =>
-          updateRecipientNextReminder({
-            recipientId: recipient.id,
-            envelopeId: envelope.id,
-            sentAt,
-            lastReminderSentAt: null,
-          }),
-        ),
-      );
-
-      envelopeForWebhook = await prisma.envelope.findFirstOrThrow({
-        where: {
-          id: envelope.id,
-        },
-        include: {
-          documentMeta: true,
-          recipients: true,
-        },
-      });
-    }
-  }
-
   await triggerWebhook({
     event: WebhookTriggerEvents.DOCUMENT_SENT,
-    data: ZWebhookDocumentSchema.parse(mapEnvelopeToWebhookDocumentPayload(envelopeForWebhook)),
+    data: ZWebhookDocumentSchema.parse(mapEnvelopeToWebhookDocumentPayload(updatedEnvelope)),
     userId,
     teamId,
   });
 
-  return envelopeForWebhook;
+  return updatedEnvelope;
 };
 
 const injectFormValuesIntoDocument = async (
