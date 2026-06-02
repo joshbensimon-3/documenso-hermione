@@ -637,6 +637,37 @@ SET "organisationId" = o."id"
 FROM new_orgs o
 WHERE s."userId" = o."ownerUserId";
 
+/*
+ * Handle any remaining teams with no team-level or user-level subscription.
+ *
+ * These teams are not assigned an organisation by the subscription migration
+ * paths above. Create one organisation per remaining team so downstream team
+ * group migration never receives a null organisationId.
+ */
+WITH orphan_team_organisations AS (
+  INSERT INTO "Organisation" (
+    "id", "createdAt", "updatedAt", "type", "name", "url", "avatarImageId", "ownerUserId", "teamId"
+  )
+  SELECT
+    generate_prefix_id('org'),
+    t."createdAt",
+    NOW(),
+    'ORGANISATION'::"OrganisationType",
+    t."name",
+    generate_id(),
+    t."avatarImageId",
+    t."ownerUserId",
+    t."id"
+  FROM "Team" t
+  WHERE t."organisationId" IS NULL
+    AND t."isPersonal" = FALSE
+  RETURNING "id", "teamId"
+)
+UPDATE "Team" t
+SET "organisationId" = o."id"
+FROM orphan_team_organisations o
+WHERE o."teamId" = t."id";
+
 -- Create 3 internal groups for each organisation (ADMIN, MANAGER, MEMBER)
 WITH org_groups AS (
   SELECT
